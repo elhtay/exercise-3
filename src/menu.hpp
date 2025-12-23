@@ -33,64 +33,89 @@
  * Dish
  *****************************************************************************/
 
-class Dish {
-  public:
-    Dish(const std::string &_name, unsigned _price = 0);
+class Dish
+{
+public:
+  Dish(const std::string &_name, unsigned _price = 0);
+  virtual ~Dish() = default;
 
-  private:
-    const std::string name;
-    const unsigned price;
+  std::string getName() const { return name; }
+
+  unsigned getPrice() const { return price; }
+
+private:
+  const std::string name;
+  const unsigned price;
 };
 
 /*****************************************************************************
  * Pizza
  *****************************************************************************/
 
-class Pizza : public Dish {
-  public:
-    Pizza(const std::string &name, unsigned price = 0);
+class Pizza : public Dish
+{
+public:
+  Pizza(const std::string &name, unsigned price = 0);
 };
 
 /*****************************************************************************
  * Burger
  *****************************************************************************/
 
-class Burger : public Dish {
-  public:
-    Burger(const std::string &name, unsigned _weight = 0, unsigned price = 0);
+class Burger : public Dish
+{
+public:
+  Burger(const std::string &name, unsigned _weight = 0, unsigned price = 0);
+
+  unsigned getWeight() const { return weight; }
+
+private:
+  const unsigned weight;
 };
 
 /*****************************************************************************
  * Softdrink
  *****************************************************************************/
 
-class Softdrink : public Dish {
-  public:
-    Softdrink(const std::string &name, unsigned _volume = 0,
-              unsigned price = 0);
+class Softdrink : public Dish
+{
+public:
+  Softdrink(const std::string &name, unsigned _volume = 0,
+            unsigned price = 0);
+
+  unsigned getVolume() const { return volume; }
+
+private:
+  const unsigned volume;
 };
 
 /*****************************************************************************
  * IceCream
  *****************************************************************************/
 
-class IceCream : public Dish {
-  public:
-    IceCream(const std::string &name, unsigned price = 0);
+class IceCream : public Dish
+{
+public:
+  IceCream(const std::string &name, unsigned price = 0);
 };
 
 /*****************************************************************************
  * Order
  *****************************************************************************/
 
-class Order {
-  public:
-    void operator+=(const Order &other);
-    void operator+=(const std::shared_ptr<Dish> &other);
-    unsigned getTap() const;
+class Order
+{
+public:
+  void operator+=(const Order &other);
 
-  private:
-    std::vector<std::shared_ptr<Dish>> dishes;
+  void operator+=(const std::shared_ptr<Dish> &other);
+
+  unsigned getTap() const;
+
+private:
+  std::vector<std::shared_ptr<Dish>> dishes;
+
+  friend std::ostream &operator<<(std::ostream &out, const Order &order);
 };
 
 std::ostream &operator<<(std::ostream &out, const Order &order);
@@ -99,24 +124,58 @@ std::ostream &operator<<(std::ostream &out, const Order &order);
  * Menu
  *****************************************************************************/
 
-class Menu {
-  public:
-    Menu(const Menu &other);
-    Menu(Menu &&other);
-    Menu(std::initializer_list<std::shared_ptr<Dish>> l);
+class Menu
+{
+public:
+  Menu(const Menu &other);
 
-    void operator=(const Menu &other);
-    void operator=(Menu &&other);
+  Menu(Menu &&other);
 
-    size_t size() const;
+  Menu(std::initializer_list<std::shared_ptr<Dish>> l);
 
-    template <typename T, typename... Args>
-    std::shared_ptr<Order> makeOrder(const T &dish, const Args... _dishes) {
-        return nullptr;
+  void operator=(const Menu &other);
+
+  void operator=(Menu &&other);
+
+  size_t size() const;
+
+  /**
+   * @brief Create order from dish specifications
+   *
+   * @tparam T Type of the first dish
+   * @tparam Args Types of remaining dishes
+   * @param dish First dish specification
+   * @param _dishes Remaining dish specifications
+   * @return std::shared_ptr<Order> Pointer to order, or nullptr if any dish not found
+   */
+  template <typename T, typename... Args>
+  std::shared_ptr<Order> makeOrder(const T &dish, const Args &..._dishes)
+  {
+    auto order = std::make_shared<Order>();
+    if (!tryAddToOrder(*order, dish))
+    {
+      return nullptr;
     }
+    if constexpr (sizeof...(Args) > 0)
+    {
+      if (!(tryAddToOrder(*order, _dishes) && ...))
+      {
+        return nullptr;
+      }
+    }
+    return order;
+  }
 
-  private:
-    std::vector<std::shared_ptr<Dish>> dishes;
+private:
+  std::vector<std::shared_ptr<Dish>> dishes;
+
+  // helper functions to add dishes to an order
+  bool tryAddToOrder(Order &order, const Pizza &spec);
+  bool tryAddToOrder(Order &order, const Burger &spec);
+  bool tryAddToOrder(Order &order, const Softdrink &spec);
+  bool tryAddToOrder(Order &order, const IceCream &spec);
+
+  friend std::ostream &operator<<(std::ostream &out, const Menu &menu);
 };
 
 std::ostream &operator<<(std::ostream &out, const Menu &menu);
